@@ -94,6 +94,7 @@ class Model(nn.Module):
         stdev = torch.sqrt(
             torch.var(x_enc, dim=1, keepdim=True, unbiased=False) + 1e-5)
         x_enc /= stdev
+        print("x_enc.shape after patch embedding::::::::::::::",x_enc.shape)
 
         # do patching and embedding
         x_enc = x_enc.permute(0, 2, 1)
