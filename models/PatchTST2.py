@@ -88,11 +88,23 @@ class Model(nn.Module):
                 self.head_nf * configs.enc_in, configs.num_class)
 
     def forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec):
-        # Normalization from Non-stationary Transformer
+        # Print batch before normalization
+        print("\n=== Batch Input Before Processing ===")
+        print(f"x_enc.shape: {x_enc.shape}")  # Should be [32, 36, 1]
+    
+        # Convert tensor to NumPy for better readability
+        batch_data = x_enc.squeeze(-1).cpu().numpy()  # Shape: [32, 36]
+    
+        # Print sequences in a readable format
+        print("\n=== First 5 Sequences in the Batch ===")
+        for i in range(min(5, batch_data.shape[0])):  # Print first 5 sequences
+            print(f"Sequence {i+1}: {batch_data[i].tolist()}")
+
+        # Normalization
         means = x_enc.mean(1, keepdim=True).detach()
         x_enc = x_enc - means
         stdev = torch.sqrt(
-            torch.var(x_enc, dim=1, keepdim=True, unbiased=False) + 1e-5)
+        torch.var(x_enc, dim=1, keepdim=True, unbiased=False) + 1e-5)
         x_enc /= stdev
         #print("x_enc.shape after patch embedding::::::::::::::",x_enc.shape)
 
