@@ -395,7 +395,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             
         smape_list = []
         for h in range(self.args.pred_len):    
-            mae, mse, rmse, mape, mspe, smape, mae_inv = metric(preds[self.args.pred_len:,h,:], trues[self.args.pred_len:,h,:], preds_inverse[self.args.pred_len:,h,:], trues_inverse[self.args.pred_len:,h,:])
+            mae, mse, rmse, mape, mspe, smape, mae_inv = metric(preds[:,h,:], trues[:,h,:], preds_inverse[:,h,:], trues_inverse[:,h,:])
             print('horizon:{} mse:{}, mae:{}, smape:{}, dtw:{}'.format(h+1,mse, mae, smape, dtw))
             smape_list.append(smape)
 
