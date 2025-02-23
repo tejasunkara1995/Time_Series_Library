@@ -89,7 +89,7 @@ class Model(nn.Module):
 
     def forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec):
         # Print batch before normalization
-        print("\n=== Batch Input Before Processing ===")
+        '''print("\n=== Batch Input Before Processing ===")
         print(f"x_enc.shape: {x_enc.shape}")  # Should be [32, 36, 1]
     
         # Convert tensor to NumPy for better readability
@@ -98,7 +98,7 @@ class Model(nn.Module):
         # Print sequences in a readable format
         print("\n=== First 5 Sequences in the Batch ===")
         for i in range(min(5, batch_data.shape[0])):  # Print first 5 sequences
-            print(f"Sequence {i+1}: {batch_data[i].tolist()}")
+            print(f"Sequence {i+1}: {batch_data[i].tolist()}")'''
 
         # Normalization
         means = x_enc.mean(1, keepdim=True).detach()
