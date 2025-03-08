@@ -2,6 +2,17 @@ import optuna
 import os
 import random
 
+# Define log file paths
+output_log_file = "optuna_output.log"  # Logs all console outputs
+best_params_file = "best_params.txt"  # Stores the best hyperparameters
+error_log_file = "optuna_errors.log"  # Stores error messages
+
+# Function to log messages to a file
+def log_message(message, log_file):
+    with open(log_file, "a") as file:
+        file.write(message + "\n")
+    print(message)  # Also print to console
+
 def objective(trial):
     """Objective function for Bayesian Optimization"""
     e_layers = trial.suggest_int("e_layers", 3, 8)  # Choose between 3 to 8 layers
@@ -13,6 +24,7 @@ def objective(trial):
 
     # Ensure stride < patch_len and is even
     if stride >= patch_len or stride % 2 != 0:
+        log_message(f"Skipping invalid config: stride={stride}, patch_len={patch_len}", output_log_file)
         return float('inf')  # Return a bad score to avoid invalid runs
 
     # Define model ID
@@ -28,16 +40,18 @@ def objective(trial):
       --n_heads {n_heads} --batch_size {batch_size} --patch_len {patch_len} --stride {stride}
       --num_workers 20 --target ILITOTAL --learning_rate {learning_rate} --with_retrain 0
     """
-    
-    print(f"Running command:\n{command}")
+
+    log_message(f"Running command: {command}", output_log_file)
     os.system(command)
 
     # Read the sMAPE result from a log file (assuming run.py writes sMAPE to result_log.txt)
     try:
         with open("result_log.txt", "r") as file:
             smape = float(file.readline().strip())
-    except:
+            log_message(f"Trial: {model_id}, sMAPE: {smape}", output_log_file)
+    except Exception as e:
         smape = float('inf')  # If no valid output, assume high error
+        log_message(f"Error reading sMAPE for {model_id}: {e}", error_log_file)
 
     return smape  # Lower sMAPE is better
 
@@ -46,8 +60,11 @@ study = optuna.create_study(direction="minimize")
 study.optimize(objective, n_trials=50)
 
 # Get best parameters
-print("Best Hyperparameters:", study.best_params)
+best_params = study.best_params
+log_message(f"Best Hyperparameters: {best_params}", output_log_file)
 
-# Save best parameters
-with open("best_params.txt", "w") as file:
-    file.write(str(study.best_params))
+# Save best parameters to a separate file
+with open(best_params_file, "w") as file:
+    file.write(str(best_params))
+
+log_message(f"Best parameters saved to {best_params_file}", output_log_file)
