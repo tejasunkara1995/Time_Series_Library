@@ -1,6 +1,6 @@
 import optuna
 import os
-import random
+import subprocess
 
 # Define log file paths
 output_log_file = "optuna_output.log"  # Logs all console outputs
@@ -30,28 +30,52 @@ def objective(trial):
     # Define model ID
     model_id = f"trial_e{e_layers}_h{n_heads}_b{batch_size}_p{patch_len}_s{stride}_lr{learning_rate}"
     
-    # Run the model with selected hyperparameters
-    command = f"""
-    python -u run.py --task_name long_term_forecast --is_training 1
-      --root_path ./dataset/illness/ --data_path national_illness_24_plus_cdc_influenza_weekly_dataset.csv
-      --model_id "{model_id}"
-      --model PatchTST2 --data custom --features MS --seq_len 36 --label_len 0 --pred_len 12
-      --e_layers {e_layers} --d_layers 1 --factor 3 --enc_in 7 --dec_in 7 --c_out 7 --des 'Exp'
-      --n_heads {n_heads} --batch_size {batch_size} --patch_len {patch_len} --stride {stride}
-      --num_workers 20 --target ILITOTAL --learning_rate {learning_rate} --with_retrain 0
-    """
+    # Corrected command using single-line string formatting (NO EXTRA SPACES AFTER `\`)
+    command = f"""python -u run.py --task_name long_term_forecast --is_training 1 \
+      --root_path ./dataset/illness/ \
+      --data_path national_illness_24_plus_cdc_influenza_weekly_dataset.csv \
+      --model_id {model_id} \
+      --model PatchTST2 \
+      --data custom \
+      --features MS \
+      --seq_len 36 \
+      --label_len 0 \
+      --pred_len 12 \
+      --e_layers {e_layers} \
+      --d_layers 1 \
+      --factor 3 \
+      --enc_in 7 \
+      --dec_in 7 \
+      --c_out 7 \
+      --des 'Exp' \
+      --n_heads {n_heads} \
+      --batch_size {batch_size} \
+      --patch_len {patch_len} \
+      --stride {stride} \
+      --num_workers 20 \
+      --target ILITOTAL \
+      --learning_rate {learning_rate} \
+      --with_retrain 0"""
 
     log_message(f"Running command: {command}", output_log_file)
-    os.system(command)
 
-    # Read the sMAPE result from a log file (assuming run.py writes sMAPE to result_log.txt)
+    # Execute the command safely
     try:
-        with open("result_log.txt", "r") as file:
-            smape = float(file.readline().strip())
-            log_message(f"Trial: {model_id}, sMAPE: {smape}", output_log_file)
-    except Exception as e:
-        smape = float('inf')  # If no valid output, assume high error
-        log_message(f"Error reading sMAPE for {model_id}: {e}", error_log_file)
+        process = subprocess.run(command, shell=True, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        log_message(f"Output:\n{process.stdout}", output_log_file)
+    except subprocess.CalledProcessError as e:
+        log_message(f"Error executing command: {e.stderr}", error_log_file)
+        return float('inf')  # If command fails, return a bad score
+
+    # Read the sMAPE result from a log file (Check if file exists)
+    smape = float('inf')  # Default high error if no valid output
+    if os.path.exists("result_log.txt"):
+        try:
+            with open("result_log.txt", "r") as file:
+                smape = float(file.readline().strip())
+                log_message(f"Trial: {model_id}, sMAPE: {smape}", output_log_file)
+        except Exception as e:
+            log_message(f"Error reading sMAPE for {model_id}: {e}", error_log_file)
 
     return smape  # Lower sMAPE is better
 
