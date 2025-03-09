@@ -39,7 +39,7 @@ def objective(trial):
     learning_rate = trial.suggest_categorical("learning_rate", [0.001, 0.0001, 0.00001])  # Learning rates
 
     # Define model ID
-    model_id = f"trial_e{e_layers}_h{n_heads}_b{batch_size}_p{patch_len}_s{stride}_lr{learning_rate}"
+    model_id = f"trial_{trial.number}_e{e_layers}_h{n_heads}_b{batch_size}_p{patch_len}_s{stride}_lr{learning_rate}"
 
     # Formatted command with exact structure
     command = f"""python -u run.py --task_name long_term_forecast --is_training 1 \
@@ -68,7 +68,7 @@ def objective(trial):
       --learning_rate {learning_rate} \
       --with_retrain 0"""
 
-    log_message(f"Running: {model_id}", output_log_file)
+    log_message(f"Running Trial {trial.number}: {model_id}", output_log_file)
 
     try:
         os.system(command)  # Execute model training
@@ -78,17 +78,22 @@ def objective(trial):
 
     # Extract the latest 'mean smape over horizons' from the log file
     smape = extract_mean_smape()
-    log_message(f"Trial {trial.number}: {model_id}, Mean sMAPE: {smape}", output_log_file)
+    
+    # Log the trial results including hyperparameters and sMAPE
+    log_message(f"Trial {trial.number}: Model ID: {model_id}", output_log_file)
+    log_message(f"    Hyperparameters: e_layers={e_layers}, n_heads={n_heads}, batch_size={batch_size}, patch_len={patch_len}, stride={stride}, learning_rate={learning_rate}", output_log_file)
+    log_message(f"    Mean sMAPE over horizons: {smape}", output_log_file)
 
     return smape  # Lower values are better
 
 # Optimize with parallel processing (if available)
 study = optuna.create_study(direction="minimize")
-study.optimize(objective, n_trials=30, n_jobs=2)  # Reduce trials, add parallel jobs
+study.optimize(objective, n_trials=60, n_jobs=2)  # Running 60 trials with 2 parallel jobs
 
 # Save best parameters
 best_params = study.best_params
 with open(best_params_file, "w") as file:
     file.write(str(best_params))
 
+log_message(f"Best parameters: {best_params}", output_log_file)
 log_message(f"Best parameters saved to {best_params_file}", output_log_file)
